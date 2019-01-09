@@ -121,33 +121,24 @@ String.prototype.toEniseyAE = function (check) {
 };
 
 String.prototype.replaceAll = function (search, replacement) {
-    var target = this;
-    return target.replace(new RegExp(search, 'g'), replacement);
+    return this.replace(new RegExp(search, 'g'), replacement);
 };
 
-/*
-* step #2
-*/
+String.prototype.diphthongToLetter = function (check) {
+    if (check) {
+        var text = diphthongI(this);
+        text = diphthongW(text);
+        return text;
+    }
+    return this.replaceAll(CRI, 'i')
+                .replaceAll(CRW, 'u');
+};
 
-function latinize(word) {
-    /*word = word.replaceAll ('I','ı').replaceAll ('İ','i')
-                .toLowerCase();
-    if (!enisey_a) { word = word.replaceAll('ä', 'e'); }
-    return word
-    .split('').map(function (char) { return a[char] || char;}).join('');*/
+String.prototype.removePunctuations = function (check) {
+    if (!check) return this;
 
-    return word
-        .replaceAll('I', 'ı').replaceAll('İ', 'i')  /* Turkish extra ordinaries */
-        .toLowerCase()
-        .split('').map(function (char) {
-            return a[char] || char;
-        }).join('')
-        .toEniseyAE(enisey_a);
-}
-
-function removePunctuations(s) {
     var res = '';
-    s.split('').map(function (char) {
+    this.split('').map(function (char) {
         var c = a[char] || char;
         if (ABC.indexOf(c) !== -1 || c === '\n' || c === CRI || c === CRW) {
             // if (Character.isLetterOrDigit(c) || c.equals('\n')) {
@@ -157,40 +148,34 @@ function removePunctuations(s) {
         }
     });
     return res;
-}
+};
 
 /*
-function toEniseyAE(input) {
-   return enisey_a ? input : input.replaceAll('ä', 'е');
-}*/
+* step #2
+*/
+function normalize(word) {
+    return word
+        .replaceAll('I', 'ı').replaceAll('İ', 'i')  /* Turkish extra ordinaries */
+        .toLowerCase()
+        .split('').map(function (char) {
+            return a[char] || char;
+        }).join('')
+        .toEniseyAE(enisey_a)
+        .removePunctuations(true)
+        .replaceAll('\n', ' Z ')
+        .trim()
+        .replaceAll('\\s{2,}', ' ')
+        .split(' ');
+}
 
 /*
 * step #1
 */
 function toBitig(input) {
-    var words = latinize(input);
-    /*  if (!enisey_a) { words = words.replaceAll('ä', 'e'); } */
-    words = removePunctuations(words);
-    words = words
-        .replaceAll('\n', ' Z ')
-        .trim()
-        .replaceAll('\\s{2,}', ' ')
-        .split(' ');
-
+    var words = normalize(input);
     var sentence = '', last = '';
     words.forEach((word, index) => {
-
-        //console.log('Kazak W: ',word , word.indexOf(CRW));
-        if (itoiy && (word.indexOf(CRI) !== -1 || word.indexOf(CRW) !== -1)) { /* Normalize Kazak и & у letter */
-            word = diphthongI(word);
-            word = diphthongW(word);
-        } else {
-            word = word
-                .replaceAll(CRI, 'i')
-                .replaceAll(CRW, 'u');
-        }
-        // word = (itoiy && word.indexOf(CRI) !== -1) ? diphthongI(word) : word.replaceAll(CRI, 'i');
-        // word = (itoiy && word.indexOf(CRW) !== -1) ? diphthongW(word) : word.replaceAll(CRW, 'u');;
+        word = word.diphthongToLetter(itoiy);
 
         var add;
         if (!funcs) {
